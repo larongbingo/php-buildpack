@@ -43,6 +43,9 @@ func (s *Supplier) Run() error {
 	if err := s.InstallHTTPD(); err != nil {
 		return fmt.Errorf("Installing HTTPD: %s", err)
 	}
+	if err := s.InstallPHP(); err != nil {
+		return fmt.Errorf("Installing PHP: %s", err)
+	}
 
 	return nil
 }
