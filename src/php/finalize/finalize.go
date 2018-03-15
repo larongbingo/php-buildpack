@@ -1,7 +1,9 @@
 package finalize
 
 import (
+	"fmt"
 	"io"
+	"path/filepath"
 
 	"github.com/cloudfoundry/libbuildpack"
 )
@@ -38,7 +40,21 @@ type Finalizer struct {
 func (f *Finalizer) Run() error {
 	f.Log.BeginStep("Configuring php")
 
-	// TODO: Prepare app for launch here here...
+	data, err := f.GenerateReleaseYaml()
+	if err != nil {
+		f.Log.Error("Error generating release YAML: %v", err)
+		return err
+	}
+	releasePath := filepath.Join(f.Stager.DepDir(), "release-step.yml")
+	libbuildpack.NewYAML().Write(releasePath, data)
 
 	return nil
+}
+
+func (f *Finalizer) GenerateReleaseYaml() (map[string]map[string]string, error) {
+	return map[string]map[string]string{
+		"default_process_types": {
+			"web": fmt.Sprintf("$DEPS_DIR/%d/start", f.Stager.DepsIdx()),
+		},
+	}, nil
 }

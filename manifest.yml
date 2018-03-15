@@ -1,46 +1,12 @@
 ---
 language: php
-exclude_files:
-- ".git/"
-- ".gitignore"
-- fixtures/
-- pkg/
-- src/php/
-- ".bin/"
-- log/
-- tests/
-- cf.Gemfile
-- cf.Gemfile.lock
-- bin/package
-- buildpack-packager/
-- php_buildpack-*v*
 default_versions:
 - name: php
-  version: 5.6.34
-- name: httpd
-  version: 2.4.29
-- name: newrelic
-  version: 7.7.0.203
+  version: 5.6.x
 - name: nginx
-  version: 1.13.9
-- name: composer
-  version: 1.6.3
-url_to_dependency_map:
-- match: appdynamics-php-agent-x64-linux-(\d+\.\d+\.\d+\.\d+)
-  name: appdynamics
-  version: "$1"
-- match: newrelic-php5-(\d+\.\d+\.\d+\.\d+)-linux
-  name: newrelic
-  version: "$1"
-- match: CA-APM-PHPAgent-(\d+\.\d+\.\d+)_linux
-  name: CAAPM
-  version: "$1"
-- match: "([^\\/]*)-(\\d+\\.\\d+\\.\\d+)"
-  name: "$1"
-  version: "$2"
-- match: "\\/composer\\/(.*)\\/composer.phar"
-  name: composer
-  version: "$1"
+  version: 1.13.x
+pre_package: scripts/build.sh
+url_to_dependency_map: []
 dependency_deprecation_dates:
 - match: 5.6.\d+
   version_line: '5.6'
@@ -638,3 +604,18 @@ dependencies:
   sha256: 21ff4d0f5a04eea7e7eec96f64333da16d275ffb6d6cb1b42cd18e99b02815d7
   cf_stacks:
   - cflinuxfs2
+include_files:
+- CHANGELOG
+- CONTRIBUTING.md
+- ISSUE_TEMPLATE
+- LICENSE
+- NOTICE
+- PULL_REQUEST_TEMPLATE
+- README.md
+- VERSION
+- bin/compile
+- bin/detect
+- bin/finalize
+- bin/release
+- bin/supply
+- manifest.yml
