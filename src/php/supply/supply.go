@@ -1,7 +1,9 @@
 package supply
 
 import (
+	"fmt"
 	"io"
+	"path/filepath"
 
 	"github.com/cloudfoundry/libbuildpack"
 )
@@ -38,7 +40,33 @@ type Supplier struct {
 func (s *Supplier) Run() error {
 	s.Log.BeginStep("Supplying php")
 
-	// TODO: Install any dependencies here...
+	if err := s.InstallHTTPD(); err != nil {
+		return fmt.Errorf("Installing HTTPD: %s", err)
+	}
+
+	return nil
+}
+
+func (s *Supplier) InstallHTTPD() error {
+	dep, err := s.Manifest.DefaultVersion("httpd")
+	if err != nil {
+		return err
+	}
+	if err := s.Manifest.InstallDependency(dep, filepath.Join(s.Stager.DepDir(), "httpd")); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Supplier) InstallPHP() error {
+	dep, err := s.Manifest.DefaultVersion("php")
+	if err != nil {
+		return err
+	}
+	if err := s.Manifest.InstallDependency(dep, filepath.Join(s.Stager.DepDir(), "php")); err != nil {
+		return err
+	}
 
 	return nil
 }
