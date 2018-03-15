@@ -39,10 +39,10 @@ func main() {
 	f := finalize.Finalizer{
 		Stager:  stager,
 		Log:     logger,
-		Command: &libbuildpack.Command{},
+		Command: libbuildpack.Command{},
 	}
 
-	if err := finalize.Run(&f); err != nil {
+	if err := f.Run(); err != nil {
 		os.Exit(12)
 	}
 
