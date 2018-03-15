@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # bin/release <build-dir>
 # This script provides feedback metadata to Cloud Foundry indicating how the app should be executed
+set -euo pipefail
 
-echo "Release"
-echo "$@"
+cat /tmp/php-buildpack-release-step.yml

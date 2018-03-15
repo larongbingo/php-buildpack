@@ -3,6 +3,7 @@ package finalize
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"path/filepath"
 
 	"github.com/cloudfoundry/libbuildpack"
@@ -40,21 +41,28 @@ type Finalizer struct {
 func (f *Finalizer) Run() error {
 	f.Log.BeginStep("Configuring php")
 
+	start := fmt.Sprintf(`#!/usr/bin/env bash
+# TODO real process management
+$DEPS_DIR/%s/httpd/bin/apachectl -f "$DEPS_DIR/%s/httpd/conf/httpd.conf" -k start -DFOREGROUND &
+$DEPS_DIR/%s/php/sbin/php-fpm -p "$DEPS_DIR/%s/php/etc" -y "$DEPS_DIR/%s/php/etc/php-fpm.conf" -c "$DEPS_DIR/%s/php/etc"
+`, f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx())
+	if err := ioutil.WriteFile(filepath.Join(f.Stager.DepDir(), "start"), []byte(start), 0755); err != nil {
+		f.Log.Error("Error writing start file: %v", err)
+		return err
+	}
+
 	data, err := f.GenerateReleaseYaml()
 	if err != nil {
 		f.Log.Error("Error generating release YAML: %v", err)
 		return err
 	}
-	releasePath := filepath.Join(f.Stager.DepDir(), "release-step.yml")
-	libbuildpack.NewYAML().Write(releasePath, data)
-
-	return nil
+	return libbuildpack.NewYAML().Write("/tmp/php-buildpack-release-step.yml", data)
 }
 
 func (f *Finalizer) GenerateReleaseYaml() (map[string]map[string]string, error) {
 	return map[string]map[string]string{
 		"default_process_types": {
-			"web": fmt.Sprintf("$DEPS_DIR/%d/start", f.Stager.DepsIdx()),
+			"web": fmt.Sprintf("$DEPS_DIR/%s/start", f.Stager.DepsIdx()),
 		},
 	}, nil
 }

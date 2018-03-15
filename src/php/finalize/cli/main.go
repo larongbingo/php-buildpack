@@ -37,9 +37,10 @@ func main() {
 	}
 
 	f := finalize.Finalizer{
-		Stager:  stager,
-		Log:     logger,
-		Command: libbuildpack.Command{},
+		Stager:   stager,
+		Manifest: manifest,
+		Log:      logger,
+		Command:  libbuildpack.Command{},
 	}
 
 	if err := f.Run(); err != nil {

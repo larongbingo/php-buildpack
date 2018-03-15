@@ -14,6 +14,7 @@ type Stager interface {
 	DepDir() string
 	DepsIdx() string
 	DepsDir() string
+	LinkDirectoryInDepDir(string, string) error
 }
 
 type Manifest interface {
@@ -51,14 +52,14 @@ func (s *Supplier) Run() error {
 }
 
 func (s *Supplier) InstallHTTPD() error {
-	dep, err := s.Manifest.DefaultVersion("httpd")
-	if err != nil {
+	if err := s.Manifest.InstallOnlyVersion("httpd", s.Stager.DepDir()); err != nil {
 		return err
 	}
-	if err := s.Manifest.InstallDependency(dep, filepath.Join(s.Stager.DepDir(), "httpd")); err != nil {
-		return err
+	for _, dir := range []string{"bin", "lib"} {
+		if err := s.Stager.LinkDirectoryInDepDir(filepath.Join(s.Stager.DepDir(), "httpd", dir), dir); err != nil {
+			return err
+		}
 	}
-
 	return nil
 }
 
@@ -67,9 +68,13 @@ func (s *Supplier) InstallPHP() error {
 	if err != nil {
 		return err
 	}
-	if err := s.Manifest.InstallDependency(dep, filepath.Join(s.Stager.DepDir(), "php")); err != nil {
+	if err := s.Manifest.InstallDependency(dep, s.Stager.DepDir()); err != nil {
 		return err
 	}
-
+	for _, dir := range []string{"bin", "lib"} {
+		if err := s.Stager.LinkDirectoryInDepDir(filepath.Join(s.Stager.DepDir(), "php", dir), dir); err != nil {
+			return err
+		}
+	}
 	return nil
 }
