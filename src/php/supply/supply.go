@@ -23,6 +23,7 @@ type Manifest interface {
 	DefaultVersion(string) (libbuildpack.Dependency, error)
 	InstallDependency(libbuildpack.Dependency, string) error
 	InstallOnlyVersion(string, string) error
+	RootDir() string
 }
 
 type Command interface {
@@ -46,6 +47,10 @@ func (s *Supplier) Run() error {
 	}
 	if err := s.InstallPHP(); err != nil {
 		return fmt.Errorf("Installing PHP: %s", err)
+	}
+	if err := s.InstallVarify(); err != nil {
+		s.Log.Error("Failed to copy verify: %s", err)
+		return err
 	}
 
 	return nil
@@ -77,4 +82,14 @@ func (s *Supplier) InstallPHP() error {
 		}
 	}
 	return nil
+}
+
+func (s *Supplier) InstallVarify() error {
+	if exists, err := libbuildpack.FileExists(filepath.Join(s.Stager.DepDir(), "bin", "varify")); err != nil {
+		return err
+	} else if exists {
+		return nil
+	}
+
+	return libbuildpack.CopyFile(filepath.Join(s.Manifest.RootDir(), "bin", "varify"), filepath.Join(s.Stager.DepDir(), "bin", "varify"))
 }

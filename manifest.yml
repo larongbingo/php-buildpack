@@ -618,4 +618,5 @@ include_files:
 - bin/finalize
 - bin/release
 - bin/supply
+- bin/varify
 - manifest.yml
