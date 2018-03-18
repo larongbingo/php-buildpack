@@ -59,36 +59,47 @@ func (f *Finalizer) Run() error {
 
 func (f *Finalizer) WriteConfigFiles() error {
 	box := rice.MustFindBox("../../../defaults/config")
-	// for src, dest := range map[string]string{"php/5.6.x": "php/etc/", "httpd": ""} {
-	// 	box.Walk(src, func(path string, info os.FileInfo, err error) error {
-	src := "php/5.6.x"
-	dest := "php/etc"
-	templateString, err := box.String(filepath.Join(src, "php-fpm.conf"))
-	if err != nil {
-		return err
-	}
-	templateString = strings.Replace(templateString, "@{DEPS_DIR}", "{{.DEPS_DIR}}", -1)
-	templateString = strings.Replace(templateString, "@{HOME}", "{{.HOME}}", -1)
-	tmplMessage, err := template.New("php/5.6.x/php-fpm.conf").Parse(templateString)
-	if err != nil {
-		return err
-	}
+	for src, dest := range map[string]string{"php/5.6.x": "php/etc/", "httpd": "httpd/conf"} {
+		err := box.Walk(src, func(path string, info os.FileInfo, err error) error {
+			if info.IsDir() {
+				return nil
+			}
+			destFile, err := filepath.Rel(src, path)
+			if err != nil {
+				return err
+			}
+			templateString, err := box.String(filepath.Join(src, destFile))
+			if err != nil {
+				return err
+			}
+			templateString = strings.Replace(templateString, "@{DEPS_DIR}", "{{.DEPS_DIR}}", -1)
+			templateString = strings.Replace(templateString, "@{HOME}", "{{.HOME}}", -1)
+			tmplMessage, err := template.New(filepath.Join(src, destFile)).Parse(templateString)
+			if err != nil {
+				return err
+			}
 
-	fh, err := os.Create(filepath.Join(f.Stager.DepDir(), dest, "php-fpm.conf"))
-	if err != nil {
-		return err
+			if err := os.MkdirAll(filepath.Dir(filepath.Join(f.Stager.DepDir(), dest, destFile)), 0755); err != nil {
+				return err
+			}
+			fh, err := os.Create(filepath.Join(f.Stager.DepDir(), dest, destFile))
+			if err != nil {
+				return err
+			}
+			defer fh.Close()
+			tmplMessage.Execute(fh, map[string]string{
+				"DepsIdx":           f.Stager.DepsIdx(),
+				"PhpFpmConfInclude": "",
+				"Webdir":            "",
+				"HOME":              "{{.HOME}}",
+				"DEPS_DIR":          "{{.DEPS_DIR}}",
+			})
+			return nil
+		})
+		if err != nil {
+			return err
+		}
 	}
-	defer fh.Close()
-	tmplMessage.Execute(fh, map[string]string{
-		"DepsIdx":           f.Stager.DepsIdx(),
-		"PhpFpmConfInclude": "",
-		"Webdir":            "",
-		"HOME":              "{{.HOME}}",
-		"DEPS_DIR":          "{{.DEPS_DIR}}",
-	})
-	// 	return nil
-	// })
-	// }
 
 	return nil
 }

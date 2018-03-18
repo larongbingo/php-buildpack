@@ -74,5 +74,10 @@ var _ = Describe("Finalize", func() {
 			body, _ := ioutil.ReadFile(filepath.Join(depsDir, depsIdx, "php", "etc", "php-fpm.conf"))
 			Expect(string(body)).To(ContainSubstring("pid = {{.DEPS_DIR}}/9/php/var/run/php-fpm.pid"))
 		})
+		It("Writes interpolated httpd.conf", func() {
+			Expect(finalizer.WriteConfigFiles()).To(Succeed())
+			body, _ := ioutil.ReadFile(filepath.Join(depsDir, depsIdx, "httpd", "conf", "httpd.conf"))
+			Expect(string(body)).To(ContainSubstring(`DocumentRoot "${HOME}/"`))
+		})
 	})
 })
