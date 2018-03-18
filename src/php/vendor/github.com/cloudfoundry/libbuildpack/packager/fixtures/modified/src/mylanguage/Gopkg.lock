@@ -14,7 +14,7 @@
   version = "v3.5.1"
 
 [[projects]]
-  branch = "master"
+  branch = "init-155219487"
   name = "github.com/cloudfoundry/libbuildpack"
   packages = [
     ".",
@@ -22,7 +22,7 @@
     "cutlass",
     "packager"
   ]
-  revision = "7b8397466e25d977455c53486f42f73b68ae85ab"
+  revision = "44c79a01d5fb2b8168d69c445bf6bb9f973062dd"
 
 [[projects]]
   name = "github.com/elazarl/goproxy"
@@ -33,7 +33,7 @@
   branch = "master"
   name = "github.com/google/subcommands"
   packages = ["."]
-  revision = "a3682377147edf596d303faabd89f81977b3f678"
+  revision = "ce3d4cfc062faac7115d44e5befec8b5a08c3faa"
 
 [[projects]]
   branch = "master"
@@ -58,7 +58,7 @@
     "reporters/stenographer/support/go-isatty",
     "types"
   ]
-  revision = "ba8e856bb854d6771a72ddf6497a42dad3a0c971"
+  revision = "9008c7b79f9636c46a0a945141020124702f0ecf"
 
 [[projects]]
   branch = "master"
@@ -66,8 +66,6 @@
   packages = [
     ".",
     "format",
-    "gbytes",
-    "gexec",
     "internal/assertion",
     "internal/asyncassertion",
     "internal/oraclematcher",
@@ -79,7 +77,7 @@
     "matchers/support/goraph/util",
     "types"
   ]
-  revision = "de89e61d40b75aa971a9fc3eae7f4fefabd6e0ee"
+  revision = "fcebc62b30a95351cb5e56d8a97b6e67cbb85353"
 
 [[projects]]
   name = "github.com/tidwall/gjson"
@@ -101,13 +99,13 @@
     "html/atom",
     "html/charset"
   ]
-  revision = "803fdb99c0f72e493c28ef2099d250a9c989d8ff"
+  revision = "cbe0f9307d0156177f9dd5dc85da1a31abc5f2fb"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "8c0ece68c28377f4c326d85b94f8df0dace46f80"
+  revision = "c1138c84af3a9927aee1a1b8b7ce06c9b7ea52bc"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -134,14 +132,14 @@
   version = "v0.3.0"
 
 [[projects]]
+  branch = "v2"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "7f97868eec74b32b0982dd158a51a446d1da7eb5"
-  version = "v2.1.1"
+  revision = "d670f9405373e636a5a2765eea47fac0c9bc91a4"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "88ea07ed6a76bfe700347632512d417925c51f17572e3531e257abb29e0b8f6e"
+  inputs-digest = "0690e470589dba300abed5199bf49a87a54ba4f7a1d3096d04e402c34209073f"
   solver-name = "gps-cdcl"
   solver-version = 1
