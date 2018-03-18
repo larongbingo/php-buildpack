@@ -2,11 +2,11 @@ package finalize
 
 import (
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/cloudfoundry/libbuildpack"
@@ -37,7 +37,12 @@ type Finalizer struct {
 }
 
 func (f *Finalizer) Run() error {
-	f.Log.BeginStep("Configuring php")
+	f.Log.BeginStep("Finalizing php")
+
+	if err := f.SymlinkHttpd(); err != nil {
+		f.Log.Error("Error symlinking httpd: %v", err)
+		return err
+	}
 
 	if err := f.WriteConfigFiles(); err != nil {
 		f.Log.Error("Error writing config files: %v", err)
@@ -57,6 +62,11 @@ func (f *Finalizer) Run() error {
 	return libbuildpack.NewYAML().Write("/tmp/php-buildpack-release-step.yml", data)
 }
 
+func (f *Finalizer) SymlinkHttpd() error {
+	f.Log.BeginStep("Symlinking httpd into app dir")
+	return os.Symlink(filepath.Join("..", "deps", f.Stager.DepsIdx(), "httpd"), filepath.Join(f.Stager.BuildDir(), "httpd"))
+}
+
 func (f *Finalizer) WriteConfigFiles() error {
 	box := rice.MustFindBox("../../../defaults/config")
 	for src, dest := range map[string]string{"php/5.6.x": "php/etc/", "httpd": "httpd/conf"} {
@@ -74,6 +84,7 @@ func (f *Finalizer) WriteConfigFiles() error {
 			}
 			templateString = strings.Replace(templateString, "@{DEPS_DIR}", "{{.DEPS_DIR}}", -1)
 			templateString = strings.Replace(templateString, "@{HOME}", "{{.HOME}}", -1)
+			templateString = strings.Replace(templateString, "#PHP_FPM_LISTEN", "{{.PhpFpmListen}}", -1)
 			tmplMessage, err := template.New(filepath.Join(src, destFile)).Parse(templateString)
 			if err != nil {
 				return err
@@ -87,14 +98,14 @@ func (f *Finalizer) WriteConfigFiles() error {
 				return err
 			}
 			defer fh.Close()
-			tmplMessage.Execute(fh, map[string]string{
+			return tmplMessage.Execute(fh, map[string]string{
 				"DepsIdx":           f.Stager.DepsIdx(),
 				"PhpFpmConfInclude": "",
+				"PhpFpmListen":      "127.0.0.1:9000",
 				"Webdir":            "",
 				"HOME":              "{{.HOME}}",
 				"DEPS_DIR":          "{{.DEPS_DIR}}",
 			})
-			return nil
 		})
 		if err != nil {
 			return err
@@ -106,11 +117,11 @@ func (f *Finalizer) WriteConfigFiles() error {
 
 func (f *Finalizer) WriteStartFile() error {
 	start := fmt.Sprintf(`#!/usr/bin/env bash
-varify "$DEPS_DIR/%s/php/etc/php-fpm.conf"
+varify "$DEPS_DIR/%s/php/etc/" "$DEPS_DIR/%s/httpd/conf/"
 # TODO real process management
 $DEPS_DIR/%s/php/sbin/php-fpm -p "$DEPS_DIR/%s/php/etc" -y "$DEPS_DIR/%s/php/etc/php-fpm.conf" -c "$DEPS_DIR/%s/php/etc" &
 $DEPS_DIR/%s/httpd/bin/apachectl -f "$DEPS_DIR/%s/httpd/conf/httpd.conf" -k start -DFOREGROUND
-`, f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx())
+`, f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx())
 	return ioutil.WriteFile(filepath.Join(f.Stager.DepDir(), "start"), []byte(start), 0755)
 }
 

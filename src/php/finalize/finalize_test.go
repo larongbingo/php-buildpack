@@ -79,5 +79,10 @@ var _ = Describe("Finalize", func() {
 			body, _ := ioutil.ReadFile(filepath.Join(depsDir, depsIdx, "httpd", "conf", "httpd.conf"))
 			Expect(string(body)).To(ContainSubstring(`DocumentRoot "${HOME}/"`))
 		})
+		It("Writes interpolated httpd/extra/httpd-directories.conf", func() {
+			Expect(finalizer.WriteConfigFiles()).To(Succeed())
+			body, _ := ioutil.ReadFile(filepath.Join(depsDir, depsIdx, "httpd", "conf", "extra", "httpd-directories.conf"))
+			Expect(string(body)).To(ContainSubstring(`<Directory "${HOME}/">`))
+		})
 	})
 })

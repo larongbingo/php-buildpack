@@ -15,6 +15,7 @@ type Stager interface {
 	DepsIdx() string
 	DepsDir() string
 	LinkDirectoryInDepDir(string, string) error
+	WriteProfileD(string, string) error
 }
 
 type Manifest interface {
@@ -50,6 +51,10 @@ func (s *Supplier) Run() error {
 	}
 	if err := s.InstallVarify(); err != nil {
 		s.Log.Error("Failed to copy verify: %s", err)
+		return err
+	}
+	if err := s.WriteProfileD(); err != nil {
+		s.Log.Error("Failed to write profile.d: %s", err)
 		return err
 	}
 
@@ -92,4 +97,8 @@ func (s *Supplier) InstallVarify() error {
 	}
 
 	return libbuildpack.CopyFile(filepath.Join(s.Manifest.RootDir(), "bin", "varify"), filepath.Join(s.Stager.DepDir(), "bin", "varify"))
+}
+
+func (s *Supplier) WriteProfileD() error {
+	return s.Stager.WriteProfileD("bp_env_vars.sh", fmt.Sprintf("export PHPRC=$DEPS_DIR/%s/php/etc\nexport HTTPD_SERVER_ADMIN=admin@localhost\n", s.Stager.DepsIdx()))
 }
