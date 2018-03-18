@@ -3,7 +3,6 @@ package finalize
 import (
 	"fmt"
 	"html/template"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -31,16 +30,9 @@ type Manifest interface {
 	InstallOnlyVersion(string, string) error
 }
 
-type Command interface {
-	//TODO: See more options at https://github.com/cloudfoundry/libbuildpack/blob/master/command.go
-	Execute(string, io.Writer, io.Writer, string, ...string) error
-	Output(dir string, program string, args ...string) (string, error)
-}
-
 type Finalizer struct {
 	Manifest Manifest
 	Stager   Stager
-	Command  libbuildpack.Command
 	Log      *libbuildpack.Logger
 }
 
@@ -67,7 +59,11 @@ func (f *Finalizer) Run() error {
 
 func (f *Finalizer) WriteConfigFiles() error {
 	box := rice.MustFindBox("../../../defaults/config")
-	templateString, err := box.String("php/5.6.x/php-fpm.conf")
+	// for src, dest := range map[string]string{"php/5.6.x": "php/etc/", "httpd": ""} {
+	// 	box.Walk(src, func(path string, info os.FileInfo, err error) error {
+	src := "php/5.6.x"
+	dest := "php/etc"
+	templateString, err := box.String(filepath.Join(src, "php-fpm.conf"))
 	if err != nil {
 		return err
 	}
@@ -78,7 +74,7 @@ func (f *Finalizer) WriteConfigFiles() error {
 		return err
 	}
 
-	fh, err := os.Create(filepath.Join(f.Stager.DepDir(), "php", "etc", "php-fpm.conf"))
+	fh, err := os.Create(filepath.Join(f.Stager.DepDir(), dest, "php-fpm.conf"))
 	if err != nil {
 		return err
 	}
@@ -90,6 +86,9 @@ func (f *Finalizer) WriteConfigFiles() error {
 		"HOME":              "{{.HOME}}",
 		"DEPS_DIR":          "{{.DEPS_DIR}}",
 	})
+	// 	return nil
+	// })
+	// }
 
 	return nil
 }
@@ -98,8 +97,8 @@ func (f *Finalizer) WriteStartFile() error {
 	start := fmt.Sprintf(`#!/usr/bin/env bash
 varify "$DEPS_DIR/%s/php/etc/php-fpm.conf"
 # TODO real process management
-$DEPS_DIR/%s/httpd/bin/apachectl -f "$DEPS_DIR/%s/httpd/conf/httpd.conf" -k start -DFOREGROUND &
-$DEPS_DIR/%s/php/sbin/php-fpm -p "$DEPS_DIR/%s/php/etc" -y "$DEPS_DIR/%s/php/etc/php-fpm.conf" -c "$DEPS_DIR/%s/php/etc"
+$DEPS_DIR/%s/php/sbin/php-fpm -p "$DEPS_DIR/%s/php/etc" -y "$DEPS_DIR/%s/php/etc/php-fpm.conf" -c "$DEPS_DIR/%s/php/etc" &
+$DEPS_DIR/%s/httpd/bin/apachectl -f "$DEPS_DIR/%s/httpd/conf/httpd.conf" -k start -DFOREGROUND
 `, f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx(), f.Stager.DepsIdx())
 	return ioutil.WriteFile(filepath.Join(f.Stager.DepDir(), "start"), []byte(start), 0755)
 }
