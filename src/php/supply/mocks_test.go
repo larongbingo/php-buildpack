@@ -70,6 +70,18 @@ func (mr *MockStagerMockRecorder) DepDir() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DepDir", reflect.TypeOf((*MockStager)(nil).DepDir))
 }
 
+// DepsDir mocks base method
+func (m *MockStager) DepsDir() string {
+	ret := m.ctrl.Call(m, "DepsDir")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// DepsDir indicates an expected call of DepsDir
+func (mr *MockStagerMockRecorder) DepsDir() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DepsDir", reflect.TypeOf((*MockStager)(nil).DepsDir))
+}
+
 // DepsIdx mocks base method
 func (m *MockStager) DepsIdx() string {
 	ret := m.ctrl.Call(m, "DepsIdx")

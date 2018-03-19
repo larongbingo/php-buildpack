@@ -3,5 +3,5 @@
 /php_buildpack-*.zip
 /.*.cache
 /*.droplet
-/src/php/finalize/rice-box.go
+/src/php/supply/rice-box.go
 /src/github.com/

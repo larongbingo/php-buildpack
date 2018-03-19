@@ -13,6 +13,8 @@ import (
 	"github.com/kr/text"
 )
 
+//go:generate rice embed-go
+
 type Stager interface {
 	BuildDir() string
 	CacheDir() string
@@ -129,7 +131,7 @@ func (s *Supplier) WriteConfigFiles() error {
 	ctxStage["HOME"] = s.Stager.BuildDir()
 	ctxStage["TMPDIR"] = "/tmp"
 
-	box := rice.MustFindBox("../../../defaults/config")
+	box := rice.MustFindBox("config")
 	for src, dest := range map[string]string{"php/5.6.x": "php/etc/", "httpd": "httpd/conf"} {
 		err := box.Walk(src, func(path string, info os.FileInfo, err error) error {
 			if info.IsDir() {

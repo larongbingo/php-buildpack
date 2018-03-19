@@ -9,8 +9,6 @@ import (
 	"github.com/cloudfoundry/libbuildpack"
 )
 
-//go:generate rice embed-go
-
 type Stager interface {
 	BuildDir() string
 	DepDir() string
