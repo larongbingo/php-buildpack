@@ -30,6 +30,9 @@ func main() {
 		os.Exit(11)
 	}
 
+	os.MkdirAll(filepath.Join(stager.DepDir(), "bin"), 0755)
+	os.MkdirAll(filepath.Join(stager.DepDir(), "lib"), 0755)
+
 	if err = manifest.SetAppCacheDir(stager.CacheDir()); err != nil {
 		logger.Error("Unable to setup app cache dir: %s", err)
 		os.Exit(18)

@@ -7,7 +7,7 @@ package supply_test
 import (
 	libbuildpack "github.com/cloudfoundry/libbuildpack"
 	gomock "github.com/golang/mock/gomock"
-	io "io"
+	exec "os/exec"
 	reflect "reflect"
 )
 
@@ -46,6 +46,18 @@ func (mr *MockStagerMockRecorder) BuildDir() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BuildDir", reflect.TypeOf((*MockStager)(nil).BuildDir))
 }
 
+// CacheDir mocks base method
+func (m *MockStager) CacheDir() string {
+	ret := m.ctrl.Call(m, "CacheDir")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// CacheDir indicates an expected call of CacheDir
+func (mr *MockStagerMockRecorder) CacheDir() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CacheDir", reflect.TypeOf((*MockStager)(nil).CacheDir))
+}
+
 // DepDir mocks base method
 func (m *MockStager) DepDir() string {
 	ret := m.ctrl.Call(m, "DepDir")
@@ -70,18 +82,6 @@ func (mr *MockStagerMockRecorder) DepsIdx() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DepsIdx", reflect.TypeOf((*MockStager)(nil).DepsIdx))
 }
 
-// DepsDir mocks base method
-func (m *MockStager) DepsDir() string {
-	ret := m.ctrl.Call(m, "DepsDir")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// DepsDir indicates an expected call of DepsDir
-func (mr *MockStagerMockRecorder) DepsDir() *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DepsDir", reflect.TypeOf((*MockStager)(nil).DepsDir))
-}
-
 // LinkDirectoryInDepDir mocks base method
 func (m *MockStager) LinkDirectoryInDepDir(arg0, arg1 string) error {
 	ret := m.ctrl.Call(m, "LinkDirectoryInDepDir", arg0, arg1)
@@ -92,6 +92,18 @@ func (m *MockStager) LinkDirectoryInDepDir(arg0, arg1 string) error {
 // LinkDirectoryInDepDir indicates an expected call of LinkDirectoryInDepDir
 func (mr *MockStagerMockRecorder) LinkDirectoryInDepDir(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LinkDirectoryInDepDir", reflect.TypeOf((*MockStager)(nil).LinkDirectoryInDepDir), arg0, arg1)
+}
+
+// WriteProfileD mocks base method
+func (m *MockStager) WriteProfileD(arg0, arg1 string) error {
+	ret := m.ctrl.Call(m, "WriteProfileD", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WriteProfileD indicates an expected call of WriteProfileD
+func (mr *MockStagerMockRecorder) WriteProfileD(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteProfileD", reflect.TypeOf((*MockStager)(nil).WriteProfileD), arg0, arg1)
 }
 
 // MockManifest is a mock of Manifest interface
@@ -142,6 +154,18 @@ func (mr *MockManifestMockRecorder) DefaultVersion(arg0 interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultVersion", reflect.TypeOf((*MockManifest)(nil).DefaultVersion), arg0)
 }
 
+// FetchDependency mocks base method
+func (m *MockManifest) FetchDependency(arg0 libbuildpack.Dependency, arg1 string) error {
+	ret := m.ctrl.Call(m, "FetchDependency", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// FetchDependency indicates an expected call of FetchDependency
+func (mr *MockManifestMockRecorder) FetchDependency(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchDependency", reflect.TypeOf((*MockManifest)(nil).FetchDependency), arg0, arg1)
+}
+
 // InstallDependency mocks base method
 func (m *MockManifest) InstallDependency(arg0 libbuildpack.Dependency, arg1 string) error {
 	ret := m.ctrl.Call(m, "InstallDependency", arg0, arg1)
@@ -164,6 +188,18 @@ func (m *MockManifest) InstallOnlyVersion(arg0, arg1 string) error {
 // InstallOnlyVersion indicates an expected call of InstallOnlyVersion
 func (mr *MockManifestMockRecorder) InstallOnlyVersion(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallOnlyVersion", reflect.TypeOf((*MockManifest)(nil).InstallOnlyVersion), arg0, arg1)
+}
+
+// RootDir mocks base method
+func (m *MockManifest) RootDir() string {
+	ret := m.ctrl.Call(m, "RootDir")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// RootDir indicates an expected call of RootDir
+func (mr *MockManifestMockRecorder) RootDir() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RootDir", reflect.TypeOf((*MockManifest)(nil).RootDir))
 }
 
 // MockCommand is a mock of Command interface
@@ -189,23 +225,6 @@ func (m *MockCommand) EXPECT() *MockCommandMockRecorder {
 	return m.recorder
 }
 
-// Execute mocks base method
-func (m *MockCommand) Execute(arg0 string, arg1, arg2 io.Writer, arg3 string, arg4 ...string) error {
-	varargs := []interface{}{arg0, arg1, arg2, arg3}
-	for _, a := range arg4 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "Execute", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Execute indicates an expected call of Execute
-func (mr *MockCommandMockRecorder) Execute(arg0, arg1, arg2, arg3 interface{}, arg4 ...interface{}) *gomock.Call {
-	varargs := append([]interface{}{arg0, arg1, arg2, arg3}, arg4...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockCommand)(nil).Execute), varargs...)
-}
-
 // Output mocks base method
 func (m *MockCommand) Output(dir, program string, args ...string) (string, error) {
 	varargs := []interface{}{dir, program}
@@ -222,4 +241,16 @@ func (m *MockCommand) Output(dir, program string, args ...string) (string, error
 func (mr *MockCommandMockRecorder) Output(dir, program interface{}, args ...interface{}) *gomock.Call {
 	varargs := append([]interface{}{dir, program}, args...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Output", reflect.TypeOf((*MockCommand)(nil).Output), varargs...)
+}
+
+// Run mocks base method
+func (m *MockCommand) Run(cmd *exec.Cmd) error {
+	ret := m.ctrl.Call(m, "Run", cmd)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Run indicates an expected call of Run
+func (mr *MockCommandMockRecorder) Run(cmd interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockCommand)(nil).Run), cmd)
 }

@@ -30,6 +30,10 @@ func main() {
 				"Port":     os.Getenv("PORT"),
 				"HOME":     os.Getenv("HOME"),
 				"DEPS_DIR": os.Getenv("DEPS_DIR"),
+				"TMPDIR":   os.Getenv("TMPDIR"),
+			}
+			if hash["TMPDIR"] == "" {
+				hash["TMPDIR"] = "/tmp"
 			}
 
 			t, err := template.New("conf").Parse(string(body))

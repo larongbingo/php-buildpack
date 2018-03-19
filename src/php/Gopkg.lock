@@ -44,6 +44,7 @@
   name = "github.com/cloudfoundry/libbuildpack"
   packages = [
     ".",
+    "ansicleaner",
     "bratshelper",
     "cutlass",
     "packager"
@@ -62,6 +63,12 @@
   revision = "aacba83f36a55ac31cbb71c06547a328c0cd1604"
 
 [[projects]]
+  name = "github.com/golang/mock"
+  packages = ["gomock"]
+  revision = "13f360950a79f5864a972c786a10a50e44b69541"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/google/subcommands"
   packages = ["."]
@@ -78,6 +85,12 @@
   name = "github.com/kardianos/osext"
   packages = ["."]
   revision = "ae77be60afb1dcacde03767a8c37337fad28ac14"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/kr/text"
+  packages = ["."]
+  revision = "7cafcd837844e784b526369c9bce262804aebc60"
 
 [[projects]]
   branch = "master"
@@ -186,6 +199,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9e3f663e02d2083d5ed21f36565598fff19ab089cd6938c460bc886cb23de7a8"
+  inputs-digest = "4e8c80b09b60ac6c6c3db90074a27f8d8891a0bc976bd9b3e459169e396f8fdd"
   solver-name = "gps-cdcl"
   solver-version = 1

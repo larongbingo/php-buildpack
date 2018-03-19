@@ -5,29 +5,20 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
-	"text/template"
 
-	rice "github.com/GeertJohan/go.rice"
 	"github.com/cloudfoundry/libbuildpack"
 )
 
 //go:generate rice embed-go
 
 type Stager interface {
-	//TODO: See more options at https://github.com/cloudfoundry/libbuildpack/blob/master/stager.go
 	BuildDir() string
 	DepDir() string
 	DepsIdx() string
-	DepsDir() string
 }
 
 type Manifest interface {
-	//TODO: See more options at https://github.com/cloudfoundry/libbuildpack/blob/master/manifest.go
-	AllDependencyVersions(string) []string
-	DefaultVersion(string) (libbuildpack.Dependency, error)
-	InstallDependency(libbuildpack.Dependency, string) error
-	InstallOnlyVersion(string, string) error
+	RootDir() string
 }
 
 type Finalizer struct {
@@ -41,11 +32,6 @@ func (f *Finalizer) Run() error {
 
 	if err := f.SymlinkHttpd(); err != nil {
 		f.Log.Error("Error symlinking httpd: %v", err)
-		return err
-	}
-
-	if err := f.WriteConfigFiles(); err != nil {
-		f.Log.Error("Error writing config files: %v", err)
 		return err
 	}
 
@@ -65,54 +51,6 @@ func (f *Finalizer) Run() error {
 func (f *Finalizer) SymlinkHttpd() error {
 	f.Log.BeginStep("Symlinking httpd into app dir")
 	return os.Symlink(filepath.Join("..", "deps", f.Stager.DepsIdx(), "httpd"), filepath.Join(f.Stager.BuildDir(), "httpd"))
-}
-
-func (f *Finalizer) WriteConfigFiles() error {
-	box := rice.MustFindBox("../../../defaults/config")
-	for src, dest := range map[string]string{"php/5.6.x": "php/etc/", "httpd": "httpd/conf"} {
-		err := box.Walk(src, func(path string, info os.FileInfo, err error) error {
-			if info.IsDir() {
-				return nil
-			}
-			destFile, err := filepath.Rel(src, path)
-			if err != nil {
-				return err
-			}
-			templateString, err := box.String(filepath.Join(src, destFile))
-			if err != nil {
-				return err
-			}
-			templateString = strings.Replace(templateString, "@{DEPS_DIR}", "{{.DEPS_DIR}}", -1)
-			templateString = strings.Replace(templateString, "@{HOME}", "{{.HOME}}", -1)
-			templateString = strings.Replace(templateString, "#PHP_FPM_LISTEN", "{{.PhpFpmListen}}", -1)
-			tmplMessage, err := template.New(filepath.Join(src, destFile)).Parse(templateString)
-			if err != nil {
-				return err
-			}
-
-			if err := os.MkdirAll(filepath.Dir(filepath.Join(f.Stager.DepDir(), dest, destFile)), 0755); err != nil {
-				return err
-			}
-			fh, err := os.Create(filepath.Join(f.Stager.DepDir(), dest, destFile))
-			if err != nil {
-				return err
-			}
-			defer fh.Close()
-			return tmplMessage.Execute(fh, map[string]string{
-				"DepsIdx":           f.Stager.DepsIdx(),
-				"PhpFpmConfInclude": "",
-				"PhpFpmListen":      "127.0.0.1:9000",
-				"Webdir":            "",
-				"HOME":              "{{.HOME}}",
-				"DEPS_DIR":          "{{.DEPS_DIR}}",
-			})
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (f *Finalizer) WriteStartFile() error {
