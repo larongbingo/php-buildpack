@@ -114,6 +114,16 @@ var _ = Describe("Supply", func() {
 				mockYAML.EXPECT().Load(filepath.Join(buildDir, ".bp-config", "options.json"), gomock.Any()).Return(os.NewSyscallError("", syscall.ENOENT))
 				mockYAML.EXPECT().Load(filepath.Join(buildDir, "composer.json"), gomock.Any()).Do(func(string, obj interface{}) error {
 					return yaml.Unmarshal([]byte(`{"requires":{"php":"3.4.5"}}`), obj)
+
+					// x := Client{PrimaryContact:Contact{}}
+					// v := reflect.ValueOf(&x)
+					// fmt.Println("v type:", v.Type(), ", kind:", v.Kind())
+					// f := v.Elem().FieldByName("PrimaryContact")
+					// fmt.Println("f type:", f.Type(), ", kind:", f.Kind())
+					// p := f.Addr()
+					// fmt.Println("p type:", p.Type(), ", kind:", p.Kind())
+					// p.Elem().FieldByName("Id").SetInt(1)
+					// fmt.Println("Contact Id:", x.PrimaryContact.Id)
 				})
 			})
 			It("sets php version", func() {
