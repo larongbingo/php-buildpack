@@ -216,8 +216,10 @@ func (s *Supplier) WriteConfigFiles() error {
 	ctxStage["HOME"] = s.Stager.BuildDir()
 	ctxStage["TMPDIR"] = "/tmp"
 
+	phpVersionLine := versionLine(s.PhpVersion)
+	s.Log.Debug("PHP VersionLine: %s", phpVersionLine)
 	box := rice.MustFindBox("config")
-	for src, dest := range map[string]string{"php/5.6.x": "php/etc/", "httpd": "httpd/conf"} {
+	for src, dest := range map[string]string{fmt.Sprintf("php/%s", phpVersionLine): "php/etc/", "httpd": "httpd/conf"} {
 		err := box.Walk(src, func(path string, info os.FileInfo, err error) error {
 			if info.IsDir() {
 				return nil
@@ -308,4 +310,10 @@ func (s *Supplier) InstallVarify() error {
 
 func (s *Supplier) WriteProfileD() error {
 	return s.Stager.WriteProfileD("bp_env_vars.sh", fmt.Sprintf("export PHPRC=$DEPS_DIR/%s/php/etc\nexport HTTPD_SERVER_ADMIN=admin@localhost\n", s.Stager.DepsIdx()))
+}
+
+func versionLine(v string) string {
+	vs := strings.Split(v, ".")
+	vs[len(vs)-1] = "x"
+	return strings.Join(vs, ".")
 }
