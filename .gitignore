@@ -1,6 +1,7 @@
 /pkg
 /.bin
 /php_buildpack-*.zip
+/local.yml
 /.*.cache
 /*.droplet
 /src/php/supply/rice-box.go
