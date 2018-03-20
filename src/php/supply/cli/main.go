@@ -63,7 +63,7 @@ func main() {
 		Stager:   stager,
 		Manifest: manifest,
 		Log:      logger,
-		Command:  libbuildpack.Command{},
+		Command:  &libbuildpack.Command{},
 		YAML:     libbuildpack.NewYAML(),
 	}
 

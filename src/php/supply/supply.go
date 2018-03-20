@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -65,11 +66,14 @@ func (s *Supplier) Run() error {
 		return fmt.Errorf("Installing PHP: %s", err)
 	}
 	if err := s.WriteConfigFiles(); err != nil {
-		s.Log.Error("Error writing config files: %v", err)
+		s.Log.Error("Error writing config files: %s", err)
 		return err
 	}
 
-	if true {
+	if found, err := libbuildpack.FileExists(filepath.Join(s.Stager.BuildDir(), "composer.json")); err != nil {
+		s.Log.Error("Error checking existence of composer.json: %s", err)
+		return err
+	} else if found {
 		if err := s.InstallComposer(); err != nil {
 			s.Log.Error("Failed to install composer: %s", err)
 			return err
@@ -92,6 +96,7 @@ func (s *Supplier) Run() error {
 }
 
 func (s *Supplier) Setup() error {
+	// .bp-config/options.json
 	var options struct {
 		Version string `json:"PHP_VERSION"`
 	}
@@ -100,9 +105,15 @@ func (s *Supplier) Setup() error {
 			return err
 		}
 	} else if options.Version != "" {
-		s.PhpVersion = options.Version
+		m := regexp.MustCompile(`PHP_(\d)(\d)_LATEST`).FindStringSubmatch(options.Version)
+		if len(m) == 3 {
+			s.PhpVersion = fmt.Sprintf("%s.%s.x", m[1], m[2])
+		} else {
+			s.PhpVersion = options.Version
+		}
 	}
 
+	// Composer.json
 	var composer struct {
 		Requires struct {
 			Php string `json:"php"`
@@ -113,10 +124,22 @@ func (s *Supplier) Setup() error {
 			return err
 		}
 	} else if composer.Requires.Php != "" {
+		if s.PhpVersion != "" {
+			s.Log.Warning("A version of PHP has been specified in both `composer.json` and `./bp-config/options.json`.\nThe version defined in `composer.json` will be used.")
+		}
 		s.PhpVersion = composer.Requires.Php
 	}
 
-	if s.PhpVersion == "" {
+	if s.PhpVersion != "" {
+		// Check version range
+		versions := s.Manifest.AllDependencyVersions("php")
+		if v, err := libbuildpack.FindMatchingVersion(s.PhpVersion, versions); err != nil {
+			return err
+		} else {
+			s.PhpVersion = v
+		}
+	} else {
+		// Default
 		if dep, err := s.Manifest.DefaultVersion("php"); err != nil {
 			return err
 		} else {
@@ -140,10 +163,7 @@ func (s *Supplier) InstallHTTPD() error {
 }
 
 func (s *Supplier) InstallPHP() error {
-	dep, err := s.Manifest.DefaultVersion("php")
-	if err != nil {
-		return err
-	}
+	dep := libbuildpack.Dependency{Name: "php", Version: s.PhpVersion}
 	if err := s.Manifest.InstallDependency(dep, s.Stager.DepDir()); err != nil {
 		return err
 	}
