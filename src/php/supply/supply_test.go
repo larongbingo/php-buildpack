@@ -2,11 +2,11 @@ package supply_test
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"php/supply"
+	"reflect"
 	"syscall"
 
 	"github.com/cloudfoundry/libbuildpack"
@@ -14,7 +14,6 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	yaml "gopkg.in/yaml.v2"
 )
 
 //go:generate mockgen -source=supply.go --destination=mocks_test.go --package=supply_test
@@ -99,12 +98,12 @@ var _ = Describe("Supply", func() {
 		Context("options.json has requested version", func() {
 			BeforeEach(func() {
 				mockYAML.EXPECT().Load(filepath.Join(buildDir, ".bp-config", "options.json"), gomock.Any()).Do(func(string, obj interface{}) error {
-					return fmt.Errorf("My Error")
-					// return yaml.Unmarshal([]byte(`{"PHP_VERSION":"2.3.4"}`), obj)
+					reflect.ValueOf(obj).Elem().FieldByName("Version").SetString("2.3.4")
+					return nil
 				})
 				mockYAML.EXPECT().Load(filepath.Join(buildDir, "composer.json"), gomock.Any()).Return(os.NewSyscallError("", syscall.ENOENT))
 			})
-			FIt("sets php version", func() {
+			It("sets php version", func() {
 				Expect(supplier.Setup()).To(Succeed())
 				Expect(supplier.PhpVersion).To(Equal("2.3.4"))
 			})
@@ -113,17 +112,8 @@ var _ = Describe("Supply", func() {
 			BeforeEach(func() {
 				mockYAML.EXPECT().Load(filepath.Join(buildDir, ".bp-config", "options.json"), gomock.Any()).Return(os.NewSyscallError("", syscall.ENOENT))
 				mockYAML.EXPECT().Load(filepath.Join(buildDir, "composer.json"), gomock.Any()).Do(func(string, obj interface{}) error {
-					return yaml.Unmarshal([]byte(`{"requires":{"php":"3.4.5"}}`), obj)
-
-					// x := Client{PrimaryContact:Contact{}}
-					// v := reflect.ValueOf(&x)
-					// fmt.Println("v type:", v.Type(), ", kind:", v.Kind())
-					// f := v.Elem().FieldByName("PrimaryContact")
-					// fmt.Println("f type:", f.Type(), ", kind:", f.Kind())
-					// p := f.Addr()
-					// fmt.Println("p type:", p.Type(), ", kind:", p.Kind())
-					// p.Elem().FieldByName("Id").SetInt(1)
-					// fmt.Println("Contact Id:", x.PrimaryContact.Id)
+					reflect.ValueOf(obj).Elem().FieldByName("Requires").FieldByName("Php").SetString("3.4.5")
+					return nil
 				})
 			})
 			It("sets php version", func() {
