@@ -266,3 +266,38 @@ func (m *MockCommand) Run(cmd *exec.Cmd) error {
 func (mr *MockCommandMockRecorder) Run(cmd interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockCommand)(nil).Run), cmd)
 }
+
+// MockYAML is a mock of YAML interface
+type MockYAML struct {
+	ctrl     *gomock.Controller
+	recorder *MockYAMLMockRecorder
+}
+
+// MockYAMLMockRecorder is the mock recorder for MockYAML
+type MockYAMLMockRecorder struct {
+	mock *MockYAML
+}
+
+// NewMockYAML creates a new mock instance
+func NewMockYAML(ctrl *gomock.Controller) *MockYAML {
+	mock := &MockYAML{ctrl: ctrl}
+	mock.recorder = &MockYAMLMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use
+func (m *MockYAML) EXPECT() *MockYAMLMockRecorder {
+	return m.recorder
+}
+
+// Load mocks base method
+func (m *MockYAML) Load(file string, obj interface{}) error {
+	ret := m.ctrl.Call(m, "Load", file, obj)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Load indicates an expected call of Load
+func (mr *MockYAMLMockRecorder) Load(file, obj interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Load", reflect.TypeOf((*MockYAML)(nil).Load), file, obj)
+}

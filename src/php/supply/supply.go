@@ -38,16 +38,25 @@ type Command interface {
 	Output(dir string, program string, args ...string) (string, error)
 	Run(cmd *exec.Cmd) error
 }
+type YAML interface {
+	Load(file string, obj interface{}) error
+}
 
 type Supplier struct {
-	Manifest Manifest
-	Stager   Stager
-	Command  libbuildpack.Command
-	Log      *libbuildpack.Logger
+	Manifest   Manifest
+	Stager     Stager
+	Command    Command
+	Log        *libbuildpack.Logger
+	YAML       YAML
+	PhpVersion string
 }
 
 func (s *Supplier) Run() error {
 	s.Log.BeginStep("Supplying php")
+
+	if err := s.Setup(); err != nil {
+		return fmt.Errorf("Initialiizing: %s", err)
+	}
 
 	if err := s.InstallHTTPD(); err != nil {
 		return fmt.Errorf("Installing HTTPD: %s", err)
@@ -77,6 +86,42 @@ func (s *Supplier) Run() error {
 	if err := s.WriteProfileD(); err != nil {
 		s.Log.Error("Failed to write profile.d: %s", err)
 		return err
+	}
+
+	return nil
+}
+
+func (s *Supplier) Setup() error {
+	var options struct {
+		Version string `json:"PHP_VERSION"`
+	}
+	if err := s.YAML.Load(filepath.Join(s.Stager.BuildDir(), ".bp-config", "options.json"), &options); err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else if options.Version != "" {
+		s.PhpVersion = options.Version
+	}
+
+	var composer struct {
+		Requires struct {
+			Php string `json:"php"`
+		} `json:"requires"`
+	}
+	if err := s.YAML.Load(filepath.Join(s.Stager.BuildDir(), "composer.json"), &composer); err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else if composer.Requires.Php != "" {
+		s.PhpVersion = composer.Requires.Php
+	}
+
+	if s.PhpVersion == "" {
+		if dep, err := s.Manifest.DefaultVersion("php"); err != nil {
+			return err
+		} else {
+			s.PhpVersion = dep.Version
+		}
 	}
 
 	return nil
