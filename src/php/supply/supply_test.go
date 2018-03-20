@@ -22,6 +22,7 @@ var _ = Describe("Supply", func() {
 	var (
 		err          error
 		buildDir     string
+		cacheDir     string
 		depsDir      string
 		depsIdx      string
 		supplier     *supply.Supplier
@@ -30,13 +31,14 @@ var _ = Describe("Supply", func() {
 		mockCtrl     *gomock.Controller
 		mockManifest *MockManifest
 		mockCommand  *MockCommand
-		mockYAML     *MockYAML
+		mockJSON     *MockJSON
 	)
 
 	BeforeEach(func() {
 		buildDir, err = ioutil.TempDir("", "php-buildpack.build.")
 		Expect(err).To(BeNil())
-
+		cacheDir, err = ioutil.TempDir("", "php-buildpack.cache.")
+		Expect(err).To(BeNil())
 		depsDir, err = ioutil.TempDir("", "php-buildpack.deps.")
 		Expect(err).To(BeNil())
 
@@ -50,28 +52,25 @@ var _ = Describe("Supply", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockManifest = NewMockManifest(mockCtrl)
 		mockCommand = NewMockCommand(mockCtrl)
-		mockYAML = NewMockYAML(mockCtrl)
+		mockJSON = NewMockJSON(mockCtrl)
 
-		args := []string{buildDir, "", depsDir, depsIdx}
+		args := []string{buildDir, cacheDir, depsDir, depsIdx}
 		stager := libbuildpack.NewStager(args, logger, &libbuildpack.Manifest{})
 
 		supplier = &supply.Supplier{
 			Manifest: mockManifest,
 			Stager:   stager,
 			Command:  mockCommand,
-			YAML:     mockYAML,
+			JSON:     mockJSON,
 			Log:      logger,
 		}
 	})
 
 	AfterEach(func() {
 		mockCtrl.Finish()
-
-		err = os.RemoveAll(buildDir)
-		Expect(err).To(BeNil())
-
-		err = os.RemoveAll(depsDir)
-		Expect(err).To(BeNil())
+		Expect(os.RemoveAll(buildDir)).To(Succeed())
+		Expect(os.RemoveAll(cacheDir)).To(Succeed())
+		Expect(os.RemoveAll(depsDir)).To(Succeed())
 	})
 
 	Describe("Setup", func() {
@@ -81,7 +80,7 @@ var _ = Describe("Supply", func() {
 		})
 		Context("no app settings files", func() {
 			BeforeEach(func() {
-				mockYAML.EXPECT().Load(gomock.Any(), gomock.Any()).Return(os.NewSyscallError("", syscall.ENOENT)).Times(2)
+				mockJSON.EXPECT().Load(gomock.Any(), gomock.Any()).Return(os.NewSyscallError("", syscall.ENOENT)).Times(2)
 				mockManifest.EXPECT().DefaultVersion("php").Return(libbuildpack.Dependency{Name: "php", Version: "1.3.5"}, nil)
 				Expect(supplier.Setup()).To(Succeed())
 			})
@@ -94,7 +93,7 @@ var _ = Describe("Supply", func() {
 		})
 		Context("app has settings files, but no requested versions in them", func() {
 			BeforeEach(func() {
-				mockYAML.EXPECT().Load(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+				mockJSON.EXPECT().Load(gomock.Any(), gomock.Any()).Return(nil).Times(2)
 				mockManifest.EXPECT().DefaultVersion("php").Return(libbuildpack.Dependency{Name: "php", Version: "1.3.5"}, nil)
 				Expect(supplier.Setup()).To(Succeed())
 			})
@@ -107,11 +106,11 @@ var _ = Describe("Supply", func() {
 		})
 		Context("options.json has requested version", func() {
 			BeforeEach(func() {
-				mockYAML.EXPECT().Load(filepath.Join(buildDir, ".bp-config", "options.json"), gomock.Any()).Do(func(string, obj interface{}) error {
+				mockJSON.EXPECT().Load(filepath.Join(buildDir, ".bp-config", "options.json"), gomock.Any()).Do(func(string, obj interface{}) error {
 					reflect.ValueOf(obj).Elem().FieldByName("Version").SetString("2.3.4")
 					return nil
 				})
-				mockYAML.EXPECT().Load(filepath.Join(buildDir, "composer.json"), gomock.Any()).Return(os.NewSyscallError("", syscall.ENOENT))
+				mockJSON.EXPECT().Load(filepath.Join(buildDir, "composer.json"), gomock.Any()).Return(os.NewSyscallError("", syscall.ENOENT))
 				Expect(supplier.Setup()).To(Succeed())
 			})
 			It("sets php version", func() {
@@ -123,11 +122,11 @@ var _ = Describe("Supply", func() {
 		})
 		Context("options.json has requested version of PHP_71_LATEST", func() {
 			BeforeEach(func() {
-				mockYAML.EXPECT().Load(filepath.Join(buildDir, ".bp-config", "options.json"), gomock.Any()).Do(func(string, obj interface{}) error {
+				mockJSON.EXPECT().Load(filepath.Join(buildDir, ".bp-config", "options.json"), gomock.Any()).Do(func(string, obj interface{}) error {
 					reflect.ValueOf(obj).Elem().FieldByName("Version").SetString("PHP_71_LATEST")
 					return nil
 				})
-				mockYAML.EXPECT().Load(filepath.Join(buildDir, "composer.json"), gomock.Any()).Return(os.NewSyscallError("", syscall.ENOENT))
+				mockJSON.EXPECT().Load(filepath.Join(buildDir, "composer.json"), gomock.Any()).Return(os.NewSyscallError("", syscall.ENOENT))
 				Expect(supplier.Setup()).To(Succeed())
 			})
 			It("sets php version", func() {
@@ -136,8 +135,8 @@ var _ = Describe("Supply", func() {
 		})
 		Context("composer.json has requested version", func() {
 			BeforeEach(func() {
-				mockYAML.EXPECT().Load(filepath.Join(buildDir, ".bp-config", "options.json"), gomock.Any()).Return(os.NewSyscallError("", syscall.ENOENT))
-				mockYAML.EXPECT().Load(filepath.Join(buildDir, "composer.json"), gomock.Any()).Do(func(string, obj interface{}) error {
+				mockJSON.EXPECT().Load(filepath.Join(buildDir, ".bp-config", "options.json"), gomock.Any()).Return(os.NewSyscallError("", syscall.ENOENT))
+				mockJSON.EXPECT().Load(filepath.Join(buildDir, "composer.json"), gomock.Any()).Do(func(string, obj interface{}) error {
 					reflect.ValueOf(obj).Elem().FieldByName("Requires").FieldByName("Php").SetString("3.4.5")
 					return nil
 				})
@@ -152,8 +151,8 @@ var _ = Describe("Supply", func() {
 		})
 		Context("composer.json has requested version range", func() {
 			BeforeEach(func() {
-				mockYAML.EXPECT().Load(filepath.Join(buildDir, ".bp-config", "options.json"), gomock.Any()).Return(os.NewSyscallError("", syscall.ENOENT))
-				mockYAML.EXPECT().Load(filepath.Join(buildDir, "composer.json"), gomock.Any()).Do(func(string, obj interface{}) error {
+				mockJSON.EXPECT().Load(filepath.Join(buildDir, ".bp-config", "options.json"), gomock.Any()).Return(os.NewSyscallError("", syscall.ENOENT))
+				mockJSON.EXPECT().Load(filepath.Join(buildDir, "composer.json"), gomock.Any()).Do(func(string, obj interface{}) error {
 					reflect.ValueOf(obj).Elem().FieldByName("Requires").FieldByName("Php").SetString("~>3.4.5")
 					return nil
 				})
@@ -168,11 +167,11 @@ var _ = Describe("Supply", func() {
 		})
 		Context("both options.json and composer.json set versions", func() {
 			BeforeEach(func() {
-				mockYAML.EXPECT().Load(filepath.Join(buildDir, ".bp-config", "options.json"), gomock.Any()).Do(func(string, obj interface{}) error {
+				mockJSON.EXPECT().Load(filepath.Join(buildDir, ".bp-config", "options.json"), gomock.Any()).Do(func(string, obj interface{}) error {
 					reflect.ValueOf(obj).Elem().FieldByName("Version").SetString("2.3.4")
 					return nil
 				})
-				mockYAML.EXPECT().Load(filepath.Join(buildDir, "composer.json"), gomock.Any()).Do(func(string, obj interface{}) error {
+				mockJSON.EXPECT().Load(filepath.Join(buildDir, "composer.json"), gomock.Any()).Do(func(string, obj interface{}) error {
 					reflect.ValueOf(obj).Elem().FieldByName("Requires").FieldByName("Php").SetString("3.4.5")
 					return nil
 				})

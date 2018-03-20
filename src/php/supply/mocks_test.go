@@ -267,37 +267,37 @@ func (mr *MockCommandMockRecorder) Run(cmd interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockCommand)(nil).Run), cmd)
 }
 
-// MockYAML is a mock of YAML interface
-type MockYAML struct {
+// MockJSON is a mock of JSON interface
+type MockJSON struct {
 	ctrl     *gomock.Controller
-	recorder *MockYAMLMockRecorder
+	recorder *MockJSONMockRecorder
 }
 
-// MockYAMLMockRecorder is the mock recorder for MockYAML
-type MockYAMLMockRecorder struct {
-	mock *MockYAML
+// MockJSONMockRecorder is the mock recorder for MockJSON
+type MockJSONMockRecorder struct {
+	mock *MockJSON
 }
 
-// NewMockYAML creates a new mock instance
-func NewMockYAML(ctrl *gomock.Controller) *MockYAML {
-	mock := &MockYAML{ctrl: ctrl}
-	mock.recorder = &MockYAMLMockRecorder{mock}
+// NewMockJSON creates a new mock instance
+func NewMockJSON(ctrl *gomock.Controller) *MockJSON {
+	mock := &MockJSON{ctrl: ctrl}
+	mock.recorder = &MockJSONMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use
-func (m *MockYAML) EXPECT() *MockYAMLMockRecorder {
+func (m *MockJSON) EXPECT() *MockJSONMockRecorder {
 	return m.recorder
 }
 
 // Load mocks base method
-func (m *MockYAML) Load(file string, obj interface{}) error {
+func (m *MockJSON) Load(file string, obj interface{}) error {
 	ret := m.ctrl.Call(m, "Load", file, obj)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Load indicates an expected call of Load
-func (mr *MockYAMLMockRecorder) Load(file, obj interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Load", reflect.TypeOf((*MockYAML)(nil).Load), file, obj)
+func (mr *MockJSONMockRecorder) Load(file, obj interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Load", reflect.TypeOf((*MockJSON)(nil).Load), file, obj)
 }

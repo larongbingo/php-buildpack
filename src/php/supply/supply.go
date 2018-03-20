@@ -2,6 +2,7 @@ package supply
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -39,7 +40,7 @@ type Command interface {
 	Output(dir string, program string, args ...string) (string, error)
 	Run(cmd *exec.Cmd) error
 }
-type YAML interface {
+type JSON interface {
 	Load(file string, obj interface{}) error
 }
 
@@ -48,7 +49,7 @@ type Supplier struct {
 	Stager     Stager
 	Command    Command
 	Log        *libbuildpack.Logger
-	YAML       YAML
+	JSON       JSON
 	PhpVersion string
 }
 
@@ -100,16 +101,25 @@ func (s *Supplier) Setup() error {
 	var options struct {
 		Version string `json:"PHP_VERSION"`
 	}
-	if err := s.YAML.Load(filepath.Join(s.Stager.BuildDir(), ".bp-config", "options.json"), &options); err != nil {
+	if err := s.JSON.Load(filepath.Join(s.Stager.BuildDir(), ".bp-config", "options.json"), &options); err != nil {
 		if !os.IsNotExist(err) {
 			return err
 		}
+		s.Log.Debug("File Not Exist: %s", filepath.Join(s.Stager.BuildDir(), ".bp-config", "options.json"))
 	} else if options.Version != "" {
+		s.Log.Debug("PHP Version from options.json: %s", options.Version)
 		m := regexp.MustCompile(`PHP_(\d)(\d)_LATEST`).FindStringSubmatch(options.Version)
 		if len(m) == 3 {
 			s.PhpVersion = fmt.Sprintf("%s.%s.x", m[1], m[2])
+			s.Log.Debug("PHP Version interpolated: %s", s.PhpVersion)
 		} else {
 			s.PhpVersion = options.Version
+		}
+	} else {
+		if txt, err := ioutil.ReadFile(filepath.Join(s.Stager.BuildDir(), ".bp-config", "options.json")); err != nil {
+			s.Log.Debug("Error reading .bp-config/options.json: %s", err)
+		} else {
+			s.Log.Debug(string(txt))
 		}
 	}
 
@@ -117,17 +127,25 @@ func (s *Supplier) Setup() error {
 	var composer struct {
 		Requires struct {
 			Php string `json:"php"`
-		} `json:"requires"`
+		} `json:"require"`
 	}
-	if err := s.YAML.Load(filepath.Join(s.Stager.BuildDir(), "composer.json"), &composer); err != nil {
+	if err := s.JSON.Load(filepath.Join(s.Stager.BuildDir(), "composer.json"), &composer); err != nil {
 		if !os.IsNotExist(err) {
 			return err
 		}
+		s.Log.Debug("File Not Exist: %s", filepath.Join(s.Stager.BuildDir(), "composer.json"))
 	} else if composer.Requires.Php != "" {
 		if s.PhpVersion != "" {
 			s.Log.Warning("A version of PHP has been specified in both `composer.json` and `./bp-config/options.json`.\nThe version defined in `composer.json` will be used.")
 		}
 		s.PhpVersion = composer.Requires.Php
+		s.Log.Debug("PHP Version from composer.json: %s", options.Version)
+	} else {
+		if txt, err := ioutil.ReadFile(filepath.Join(s.Stager.BuildDir(), "composer.json")); err != nil {
+			s.Log.Debug("Error reading composer.json: %s", err)
+		} else {
+			s.Log.Debug(string(txt))
+		}
 	}
 
 	if s.PhpVersion != "" {
@@ -137,6 +155,7 @@ func (s *Supplier) Setup() error {
 			return err
 		} else {
 			s.PhpVersion = v
+			s.Log.Debug("PHP Version interpolated: %s", s.PhpVersion)
 		}
 	} else {
 		// Default
@@ -144,6 +163,7 @@ func (s *Supplier) Setup() error {
 			return err
 		} else {
 			s.PhpVersion = dep.Version
+			s.Log.Debug("PHP Version Default: %s", s.PhpVersion)
 		}
 	}
 

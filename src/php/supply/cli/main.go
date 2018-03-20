@@ -64,7 +64,7 @@ func main() {
 		Manifest: manifest,
 		Log:      logger,
 		Command:  &libbuildpack.Command{},
-		YAML:     libbuildpack.NewYAML(),
+		JSON:     libbuildpack.NewJSON(),
 	}
 
 	err = s.Run()
