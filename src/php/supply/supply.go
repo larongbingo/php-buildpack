@@ -216,22 +216,21 @@ func (s *Supplier) WriteConfigFiles() error {
 	ctxStage["HOME"] = s.Stager.BuildDir()
 	ctxStage["TMPDIR"] = "/tmp"
 
-	phpVersionLine := versionLine(s.PhpVersion)
-	s.Log.Debug("PHP VersionLine: %s", phpVersionLine)
-	box := rice.MustFindBox("config")
-	for src, dest := range map[string]string{fmt.Sprintf("php/%s", phpVersionLine): "php/etc/", "httpd": "httpd/conf"} {
-		err := box.Walk(src, func(path string, info os.FileInfo, err error) error {
+	handler := func(src, dest string, readAll func(string) ([]byte, error)) func(path string, info os.FileInfo, err error) error {
+		return func(path string, info os.FileInfo, err error) error {
 			if info.IsDir() {
 				return nil
 			}
+			s.Log.Debug("WriteConfigFile: %s", path)
 			destFile, err := filepath.Rel(src, path)
 			if err != nil {
 				return err
 			}
-			templateString, err := box.String(filepath.Join(src, destFile))
+			templateBytes, err := readAll(filepath.Join(src, destFile))
 			if err != nil {
 				return err
 			}
+			templateString := string(templateBytes)
 			templateString = strings.Replace(templateString, "@{DEPS_DIR}", "{{.DEPS_DIR}}", -1)
 			templateString = strings.Replace(templateString, "@{TMPDIR}", "{{.TMPDIR}}", -1)
 			templateString = strings.Replace(templateString, "@{HOME}", "{{.HOME}}", -1)
@@ -255,9 +254,24 @@ func (s *Supplier) WriteConfigFiles() error {
 				}
 			}
 			return nil
-		})
-		if err != nil {
+		}
+	}
+
+	phpVersionLine := versionLine(s.PhpVersion)
+	s.Log.Debug("PHP VersionLine: %s", phpVersionLine)
+	box := rice.MustFindBox("config")
+	for src, dest := range map[string]string{fmt.Sprintf("php/%s", phpVersionLine): "php/etc/", "httpd": "httpd/conf"} {
+		if err := box.Walk(src, handler(src, dest, box.Bytes)); err != nil {
 			return err
+		}
+	}
+	for src, dest := range map[string]string{filepath.Join(s.Stager.BuildDir(), ".bp-config", "php"): "php/etc/", filepath.Join(s.Stager.BuildDir(), ".bp-config", "httpd"): "httpd/conf"} {
+		if found, err := libbuildpack.FileExists(src); err != nil {
+			return err
+		} else if found {
+			if err := filepath.Walk(src, handler(src, dest, ioutil.ReadFile)); err != nil {
+				return err
+			}
 		}
 	}
 
