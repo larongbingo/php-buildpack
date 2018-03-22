@@ -45,19 +45,24 @@ type JSON interface {
 }
 
 type Supplier struct {
-	Manifest   Manifest
-	Stager     Stager
-	Command    Command
-	Log        *libbuildpack.Logger
-	JSON       JSON
-	PhpVersion string
+	Manifest     Manifest
+	Stager       Stager
+	Command      Command
+	Log          *libbuildpack.Logger
+	JSON         JSON
+	PhpVersion   string
+	ComposerPath string
 }
 
 func (s *Supplier) Run() error {
 	s.Log.BeginStep("Supplying php")
 
+	if err := s.FindComposer(); err != nil {
+		return fmt.Errorf("Initialiizing: composer: %s", err)
+	}
+
 	if err := s.SetupPhpVersion(); err != nil {
-		return fmt.Errorf("Initialiizing: %s", err)
+		return fmt.Errorf("Initialiizing: php version: %s", err)
 	}
 
 	if err := s.InstallHTTPD(); err != nil {
@@ -71,10 +76,7 @@ func (s *Supplier) Run() error {
 		return err
 	}
 
-	if found, err := libbuildpack.FileExists(filepath.Join(s.Stager.BuildDir(), "composer.json")); err != nil {
-		s.Log.Error("Error checking existence of composer.json: %s", err)
-		return err
-	} else if found {
+	if s.ComposerPath != "" {
 		if err := s.InstallComposer(); err != nil {
 			s.Log.Error("Failed to install composer: %s", err)
 			return err
@@ -84,6 +86,7 @@ func (s *Supplier) Run() error {
 			return err
 		}
 	}
+
 	if err := s.InstallVarify(); err != nil {
 		s.Log.Error("Failed to copy verify: %s", err)
 		return err
@@ -91,6 +94,29 @@ func (s *Supplier) Run() error {
 	if err := s.WriteProfileD(); err != nil {
 		s.Log.Error("Failed to write profile.d: %s", err)
 		return err
+	}
+
+	return nil
+}
+
+func (s *Supplier) FindComposer() error {
+	if found, err := libbuildpack.FileExists(filepath.Join(s.Stager.BuildDir(), "composer.json")); err != nil {
+		return err
+	} else if found {
+		s.Log.Debug("Found composer in build dir")
+		s.ComposerPath = filepath.Join(s.Stager.BuildDir(), "composer.json")
+	}
+
+	// TODO webdir ??
+
+	s.Log.Debug("COMPOSER_PATH: %s", os.Getenv("COMPOSER_PATH"))
+	if os.Getenv("COMPOSER_PATH") != "" {
+		if found, err := libbuildpack.FileExists(filepath.Join(s.Stager.BuildDir(), os.Getenv("COMPOSER_PATH"), "composer.json")); err != nil {
+			return err
+		} else if found {
+			s.Log.Debug("Found composer in COMPOSER_PATH")
+			s.ComposerPath = filepath.Join(s.Stager.BuildDir(), os.Getenv("COMPOSER_PATH"), "composer.json")
+		}
 	}
 
 	return nil
@@ -115,36 +141,22 @@ func (s *Supplier) SetupPhpVersion() error {
 		} else {
 			s.PhpVersion = options.Version
 		}
-	} else {
-		if txt, err := ioutil.ReadFile(filepath.Join(s.Stager.BuildDir(), ".bp-config", "options.json")); err != nil {
-			s.Log.Debug("Error reading .bp-config/options.json: %s", err)
-		} else {
-			s.Log.Debug(string(txt))
-		}
 	}
 
-	// Composer.json
-	var composer struct {
-		Requires struct {
-			Php string `json:"php"`
-		} `json:"require"`
-	}
-	if err := s.JSON.Load(filepath.Join(s.Stager.BuildDir(), "composer.json"), &composer); err != nil {
-		if !os.IsNotExist(err) {
+	if s.ComposerPath != "" {
+		var composer struct {
+			Requires struct {
+				Php string `json:"php"`
+			} `json:"require"`
+		}
+		if err := s.JSON.Load(s.ComposerPath, &composer); err != nil {
 			return err
-		}
-		s.Log.Debug("File Not Exist: %s", filepath.Join(s.Stager.BuildDir(), "composer.json"))
-	} else if composer.Requires.Php != "" {
-		if s.PhpVersion != "" {
-			s.Log.Warning("A version of PHP has been specified in both `composer.json` and `./bp-config/options.json`.\nThe version defined in `composer.json` will be used.")
-		}
-		s.PhpVersion = composer.Requires.Php
-		s.Log.Debug("PHP Version from composer.json: %s", options.Version)
-	} else {
-		if txt, err := ioutil.ReadFile(filepath.Join(s.Stager.BuildDir(), "composer.json")); err != nil {
-			s.Log.Debug("Error reading composer.json: %s", err)
-		} else {
-			s.Log.Debug(string(txt))
+		} else if composer.Requires.Php != "" {
+			if s.PhpVersion != "" {
+				s.Log.Warning("A version of PHP has been specified in both `composer.json` and `./bp-config/options.json`.\nThe version defined in `composer.json` will be used.")
+			}
+			s.PhpVersion = composer.Requires.Php
+			s.Log.Debug("PHP Version from composer.json: %s", options.Version)
 		}
 	}
 
@@ -291,8 +303,7 @@ func (s *Supplier) InstallComposer() error {
 func (s *Supplier) RunComposer() error {
 	s.Log.BeginStep("Running composer")
 
-	cmd := exec.Command("php", filepath.Join(s.Stager.DepDir(), "bin", "composer"), "install", "--no-progress", "--no-interaction", "--no-dev")
-	cmd.Env = append(
+	env := append(
 		os.Environ(),
 		fmt.Sprintf("COMPOSER_CACHE_DIR=%s/composer", s.Stager.CacheDir()),
 		fmt.Sprintf("COMPOSER_VENDOR_DIR=%s/lib/vendor", s.Stager.BuildDir()),
@@ -300,6 +311,12 @@ func (s *Supplier) RunComposer() error {
 		"PHPRC=/tmp/php_etc/php/etc",
 		"TMPDIR=/tmp",
 	)
+	if s.ComposerPath != "" {
+		env = append(env, "COMPOSER="+s.ComposerPath)
+	}
+
+	cmd := exec.Command("php", filepath.Join(s.Stager.DepDir(), "bin", "composer"), "install", "--no-progress", "--no-interaction", "--no-dev")
+	cmd.Env = env
 	cmd.Dir = s.Stager.BuildDir()
 	cmd.Stdout = text.NewIndentWriter(os.Stdout, []byte("       "))
 	cmd.Stderr = text.NewIndentWriter(os.Stderr, []byte("       "))
