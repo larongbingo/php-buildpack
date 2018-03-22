@@ -300,10 +300,9 @@ func (s *Supplier) RunComposer() error {
 	cmd.Env = append(
 		os.Environ(),
 		fmt.Sprintf("COMPOSER_CACHE_DIR=%s/composer", s.Stager.CacheDir()),
-		"PHPRC=/tmp/php_etc/php/etc",
-		// fmt.Sprintf("PHPRC=%s/php/etc", s.Stager.DepDir()),
 		fmt.Sprintf("COMPOSER_VENDOR_DIR=%s/lib/vendor", s.Stager.BuildDir()),
 		fmt.Sprintf("COMPOSER_BIN_DIR=%s/php/bin", s.Stager.DepDir()),
+		"PHPRC=/tmp/php_etc/php/etc",
 		"TMPDIR=/tmp",
 	)
 	cmd.Dir = s.Stager.BuildDir()
@@ -323,7 +322,14 @@ func (s *Supplier) InstallVarify() error {
 }
 
 func (s *Supplier) WriteProfileD() error {
-	return s.Stager.WriteProfileD("bp_env_vars.sh", fmt.Sprintf("export PHPRC=$DEPS_DIR/%s/php/etc\nexport HTTPD_SERVER_ADMIN=admin@localhost\n", s.Stager.DepsIdx()))
+	script := fmt.Sprintf("export PHPRC=$DEPS_DIR/%s/php/etc\n", s.Stager.DepsIdx())
+	script = script + "export HTTPD_SERVER_ADMIN=admin@localhost\n"
+	if found, err := libbuildpack.FileExists(filepath.Join(s.Stager.DepDir(), "php/etc/php.ini.d")); err != nil {
+		return err
+	} else if found {
+		script = script + fmt.Sprintf("export PHP_INI_SCAN_DIR=$DEPS_DIR/%s/php/etc/php.ini.d\n", s.Stager.DepsIdx())
+	}
+	return s.Stager.WriteProfileD("bp_env_vars.sh", script)
 }
 
 func versionLine(v string) string {

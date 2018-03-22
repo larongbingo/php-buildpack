@@ -187,4 +187,28 @@ var _ = Describe("Supply", func() {
 			})
 		})
 	})
+	Describe("WriteProfileD", func() {
+		It("sets PHPRC", func() {
+			Expect(supplier.WriteProfileD()).To(Succeed())
+			Expect(ioutil.ReadFile(filepath.Join(depsDir, depsIdx, "profile.d", "bp_env_vars.sh"))).
+				To(ContainSubstring("export PHPRC=$DEPS_DIR/9/php/etc\n"))
+		})
+		Context("php.ini.d was supplied", func() {
+			BeforeEach(func() {
+				Expect(os.MkdirAll(filepath.Join(depsDir, depsIdx, "php/etc/php.ini.d"), 0755)).To(Succeed())
+			})
+			It("sets PHP_INI_SCAN_DIR", func() {
+				Expect(supplier.WriteProfileD()).To(Succeed())
+				Expect(ioutil.ReadFile(filepath.Join(depsDir, depsIdx, "profile.d", "bp_env_vars.sh"))).
+					To(ContainSubstring("export PHP_INI_SCAN_DIR=$DEPS_DIR/9/php/etc/php.ini.d\n"))
+			})
+		})
+		Context("php.ini.d was NOT supplied", func() {
+			It("does NOT set PHP_INI_SCAN_DIR", func() {
+				Expect(supplier.WriteProfileD()).To(Succeed())
+				Expect(ioutil.ReadFile(filepath.Join(depsDir, depsIdx, "profile.d", "bp_env_vars.sh"))).
+					ToNot(ContainSubstring("PHP_INI_SCAN_DIR"))
+			})
+		})
+	})
 })
