@@ -82,7 +82,7 @@ var _ = Describe("Supply", func() {
 			BeforeEach(func() {
 				mockJSON.EXPECT().Load(gomock.Any(), gomock.Any()).Return(os.NewSyscallError("", syscall.ENOENT)).Times(2)
 				mockManifest.EXPECT().DefaultVersion("php").Return(libbuildpack.Dependency{Name: "php", Version: "1.3.5"}, nil)
-				Expect(supplier.Setup()).To(Succeed())
+				Expect(supplier.SetupPhpVersion()).To(Succeed())
 			})
 			It("sets php version from default php version", func() {
 				Expect(supplier.PhpVersion).To(Equal("1.3.5"))
@@ -95,7 +95,7 @@ var _ = Describe("Supply", func() {
 			BeforeEach(func() {
 				mockJSON.EXPECT().Load(gomock.Any(), gomock.Any()).Return(nil).Times(2)
 				mockManifest.EXPECT().DefaultVersion("php").Return(libbuildpack.Dependency{Name: "php", Version: "1.3.5"}, nil)
-				Expect(supplier.Setup()).To(Succeed())
+				Expect(supplier.SetupPhpVersion()).To(Succeed())
 			})
 			It("sets php version from default php version", func() {
 				Expect(supplier.PhpVersion).To(Equal("1.3.5"))
@@ -111,7 +111,7 @@ var _ = Describe("Supply", func() {
 					return nil
 				})
 				mockJSON.EXPECT().Load(filepath.Join(buildDir, "composer.json"), gomock.Any()).Return(os.NewSyscallError("", syscall.ENOENT))
-				Expect(supplier.Setup()).To(Succeed())
+				Expect(supplier.SetupPhpVersion()).To(Succeed())
 			})
 			It("sets php version", func() {
 				Expect(supplier.PhpVersion).To(Equal("2.3.4"))
@@ -127,7 +127,7 @@ var _ = Describe("Supply", func() {
 					return nil
 				})
 				mockJSON.EXPECT().Load(filepath.Join(buildDir, "composer.json"), gomock.Any()).Return(os.NewSyscallError("", syscall.ENOENT))
-				Expect(supplier.Setup()).To(Succeed())
+				Expect(supplier.SetupPhpVersion()).To(Succeed())
 			})
 			It("sets php version", func() {
 				Expect(supplier.PhpVersion).To(Equal("7.1.2"))
@@ -140,7 +140,7 @@ var _ = Describe("Supply", func() {
 					reflect.ValueOf(obj).Elem().FieldByName("Requires").FieldByName("Php").SetString("3.4.5")
 					return nil
 				})
-				Expect(supplier.Setup()).To(Succeed())
+				Expect(supplier.SetupPhpVersion()).To(Succeed())
 			})
 			It("sets php version", func() {
 				Expect(supplier.PhpVersion).To(Equal("3.4.5"))
@@ -156,7 +156,7 @@ var _ = Describe("Supply", func() {
 					reflect.ValueOf(obj).Elem().FieldByName("Requires").FieldByName("Php").SetString("~>3.4.5")
 					return nil
 				})
-				Expect(supplier.Setup()).To(Succeed())
+				Expect(supplier.SetupPhpVersion()).To(Succeed())
 			})
 			It("sets php version", func() {
 				Expect(supplier.PhpVersion).To(Equal("3.4.7"))
@@ -175,7 +175,7 @@ var _ = Describe("Supply", func() {
 					reflect.ValueOf(obj).Elem().FieldByName("Requires").FieldByName("Php").SetString("3.4.5")
 					return nil
 				})
-				Expect(supplier.Setup()).To(Succeed())
+				Expect(supplier.SetupPhpVersion()).To(Succeed())
 			})
 			It("warns user", func() {
 				Expect(buffer.String()).To(ContainSubstring("WARNING"))
@@ -187,6 +187,29 @@ var _ = Describe("Supply", func() {
 			})
 		})
 	})
+
+	Describe("WriteConfigFiles", func() {
+		BeforeEach(func() {
+			supplier.PhpVersion = "7.1.1"
+			Expect(os.MkdirAll(filepath.Join(depsDir, depsIdx, "php", "etc"), 0755)).To(Succeed())
+		})
+		It("Writes interpolated php-fpm.conf", func() {
+			Expect(supplier.WriteConfigFiles()).To(Succeed())
+			body, _ := ioutil.ReadFile(filepath.Join(depsDir, depsIdx, "php", "etc", "php-fpm.conf"))
+			Expect(string(body)).To(ContainSubstring("pid = {{.DEPS_DIR}}/9/php/var/run/php-fpm.pid"))
+		})
+		It("Writes interpolated httpd.conf", func() {
+			Expect(supplier.WriteConfigFiles()).To(Succeed())
+			body, _ := ioutil.ReadFile(filepath.Join(depsDir, depsIdx, "httpd", "conf", "httpd.conf"))
+			Expect(string(body)).To(ContainSubstring(`DocumentRoot "${HOME}/"`))
+		})
+		It("Writes interpolated httpd/extra/httpd-directories.conf", func() {
+			Expect(supplier.WriteConfigFiles()).To(Succeed())
+			body, _ := ioutil.ReadFile(filepath.Join(depsDir, depsIdx, "httpd", "conf", "extra", "httpd-directories.conf"))
+			Expect(string(body)).To(ContainSubstring(`<Directory "${HOME}/">`))
+		})
+	})
+
 	Describe("WriteProfileD", func() {
 		It("sets PHPRC", func() {
 			Expect(supplier.WriteProfileD()).To(Succeed())

@@ -64,25 +64,4 @@ var _ = Describe("Finalize", func() {
 		err = os.RemoveAll(depsDir)
 		Expect(err).To(BeNil())
 	})
-
-	Describe("WriteConfigFiles", func() {
-		BeforeEach(func() {
-			Expect(os.MkdirAll(filepath.Join(depsDir, depsIdx, "php", "etc"), 0755)).To(Succeed())
-		})
-		It("Writes interpolated php-fpm.conf", func() {
-			Expect(finalizer.WriteConfigFiles()).To(Succeed())
-			body, _ := ioutil.ReadFile(filepath.Join(depsDir, depsIdx, "php", "etc", "php-fpm.conf"))
-			Expect(string(body)).To(ContainSubstring("pid = {{.DEPS_DIR}}/9/php/var/run/php-fpm.pid"))
-		})
-		It("Writes interpolated httpd.conf", func() {
-			Expect(finalizer.WriteConfigFiles()).To(Succeed())
-			body, _ := ioutil.ReadFile(filepath.Join(depsDir, depsIdx, "httpd", "conf", "httpd.conf"))
-			Expect(string(body)).To(ContainSubstring(`DocumentRoot "${HOME}/"`))
-		})
-		It("Writes interpolated httpd/extra/httpd-directories.conf", func() {
-			Expect(finalizer.WriteConfigFiles()).To(Succeed())
-			body, _ := ioutil.ReadFile(filepath.Join(depsDir, depsIdx, "httpd", "conf", "extra", "httpd-directories.conf"))
-			Expect(string(body)).To(ContainSubstring(`<Directory "${HOME}/">`))
-		})
-	})
 })

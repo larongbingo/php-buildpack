@@ -56,7 +56,7 @@ type Supplier struct {
 func (s *Supplier) Run() error {
 	s.Log.BeginStep("Supplying php")
 
-	if err := s.Setup(); err != nil {
+	if err := s.SetupPhpVersion(); err != nil {
 		return fmt.Errorf("Initialiizing: %s", err)
 	}
 
@@ -96,7 +96,7 @@ func (s *Supplier) Run() error {
 	return nil
 }
 
-func (s *Supplier) Setup() error {
+func (s *Supplier) SetupPhpVersion() error {
 	// .bp-config/options.json
 	var options struct {
 		Version string `json:"PHP_VERSION"`
@@ -288,11 +288,6 @@ func (s *Supplier) InstallComposer() error {
 	return s.Manifest.FetchDependency(dep, filepath.Join(s.Stager.DepDir(), "bin", "composer"))
 }
 
-// [php_app] 2018-03-18T20:29:56.963471900Z 2018-03-18 20:29:56,959 [DEBUG] composer - Running command [/tmp/app/php/bin/php /tmp/app/php/bin/composer.phar install --no-progress --no-interaction --no-dev]
-// [php_app] 2018-03-18T20:29:56.963523300Z 2018-03-18 20:29:56,959 [DEBUG] composer - ENV IS: COMPOSER_CACHE_DIR=/tmp/cache/final/composer (<type 'str'>)
-// [php_app] 2018-03-18T20:29:56.963739200Z 2018-03-18 20:29:56,960 [DEBUG] composer - ENV IS: COMPOSER_VENDOR_DIR=/tmp/app/lib/vendor (<type 'str'>)
-// [php_app] 2018-03-18T20:29:56.963750900Z 2018-03-18 20:29:56,960 [DEBUG] composer - ENV IS: PHPRC=/tmp (<type 'str'>)
-// [php_app] 2018-03-18T20:29:56.963797300Z 2018-03-18 20:29:56,960 [DEBUG] composer - ENV IS: COMPOSER_BIN_DIR=/tmp/app/php/bin (<type 'str'>)
 func (s *Supplier) RunComposer() error {
 	s.Log.BeginStep("Running composer")
 
