@@ -45,13 +45,15 @@ type JSON interface {
 }
 
 type Supplier struct {
-	Manifest     Manifest
-	Stager       Stager
-	Command      Command
-	Log          *libbuildpack.Logger
-	JSON         JSON
-	PhpVersion   string
-	ComposerPath string
+	Manifest       Manifest
+	Stager         Stager
+	Command        Command
+	Log            *libbuildpack.Logger
+	JSON           JSON
+	PhpVersion     string
+	ComposerPath   string
+	PhpExtensions  []string
+	ZendExtensions []string
 }
 
 func (s *Supplier) Run() error {
@@ -60,9 +62,11 @@ func (s *Supplier) Run() error {
 	if err := s.FindComposer(); err != nil {
 		return fmt.Errorf("Initialiizing: composer: %s", err)
 	}
-
 	if err := s.SetupPhpVersion(); err != nil {
 		return fmt.Errorf("Initialiizing: php version: %s", err)
+	}
+	if err := s.SetupExtensions(); err != nil {
+		return fmt.Errorf("Initialiizing: extensions: %s", err)
 	}
 
 	if err := s.InstallHTTPD(); err != nil {
@@ -182,6 +186,62 @@ func (s *Supplier) SetupPhpVersion() error {
 	return nil
 }
 
+func (s *Supplier) SetupExtensions() error {
+	s.PhpExtensions = []string{"bz2.so", "zlib.so", "curl.so", "mcrypt.so", "openssl.so"}
+	s.ZendExtensions = []string{}
+
+	var options map[string]interface{}
+	if err := s.JSON.Load(filepath.Join(s.Stager.BuildDir(), ".bp-config", "options.json"), &options); err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+		s.Log.Debug("File Not Exist: %s", filepath.Join(s.Stager.BuildDir(), ".bp-config", "options.json"))
+	} else {
+		if arr, ok := options["PHP_EXTENSIONS"].([]interface{}); ok {
+			// TODO why implement deprecated feature?
+			s.Log.Warning("PHP_EXTENSIONS in options.json is deprecated.")
+			s.PhpExtensions = []string{}
+			for _, val := range arr {
+				if ext, ok := val.(string); ok {
+					s.PhpExtensions = append(s.PhpExtensions, ext)
+				}
+			}
+			s.Log.Debug("Found php extensions in options.json: %v", s.PhpExtensions)
+		}
+		if arr, ok := options["ZEND_EXTENSIONS"].([]interface{}); ok {
+			// TODO warning as above?
+			s.ZendExtensions = []string{}
+			for _, val := range arr {
+				if ext, ok := val.(string); ok {
+					s.ZendExtensions = append(s.ZendExtensions, ext)
+				}
+			}
+			s.Log.Debug("Found zend extensions in options.json: %v", s.ZendExtensions)
+		}
+	}
+
+	if s.ComposerPath != "" {
+		if err := s.JSON.Load(s.ComposerPath, &options); err != nil {
+			return err
+		} else {
+			s.Log.Debug("composer.json: %+v", options)
+			if requires, ok := options["require"].(map[string]interface{}); ok {
+				s.Log.Debug("composer.json->require: %+v", options)
+				// TODO does the value mean something?
+				// TODO does composer.json have zend extensions?
+				// TODO document change to NOT testing if extenion available
+				for k, _ := range requires {
+					if strings.HasPrefix(k, "ext-") {
+						s.PhpExtensions = append(s.PhpExtensions, k[4:])
+					}
+				}
+				s.Log.Debug("Found php extensions in composer.json: %v", s.PhpExtensions)
+			}
+		}
+	}
+	return nil
+}
+
 func (s *Supplier) InstallHTTPD() error {
 	if err := s.Manifest.InstallOnlyVersion("httpd", s.Stager.DepDir()); err != nil {
 		return err
@@ -208,6 +268,8 @@ func (s *Supplier) InstallPHP() error {
 }
 
 func (s *Supplier) WriteConfigFiles() error {
+	s.Log.BeginStep("Write config files")
+
 	ctxRun := map[string]string{
 		"DepsIdx":           s.Stager.DepsIdx(),
 		"PhpFpmConfInclude": "",
@@ -216,10 +278,18 @@ func (s *Supplier) WriteConfigFiles() error {
 		"HOME":              "{{.HOME}}",
 		"DEPS_DIR":          "{{.DEPS_DIR}}",
 		"TMPDIR":            "{{.TMPDIR}}",
-		// TODO should have stuff
-		"PhpExtensions":  "extension=bz2.so\nextension=zlib.so\nextension=curl.so\nextension=mcrypt.so\nextension=openssl.so\n",
-		"ZendExtensions": "",
+		"PhpExtensions":     "",
+		"ZendExtensions":    "",
 	}
+	for _, ext := range s.PhpExtensions {
+		ctxRun["PhpExtensions"] = ctxRun["PhpExtensions"] + "extension=" + ext + "\n"
+	}
+	// s.Log.Debug("PhpExtensions: %s", ctxRun["PhpExtensions"])
+	for _, ext := range s.ZendExtensions {
+		ctxRun["ZendExtensions"] = ctxRun["ZendExtensions"] + "zend_extension=" + ext + "\n"
+	}
+	// s.Log.Debug("ZendExtensions: %s", ctxRun["ZendExtensions"])
+
 	ctxStage := make(map[string]string)
 	for k, v := range ctxRun {
 		ctxStage[k] = v
