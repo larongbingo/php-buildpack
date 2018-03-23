@@ -227,6 +227,7 @@ func (s *Supplier) SetupExtensions() error {
 			s.Log.Debug("composer.json: %+v", options)
 			if requires, ok := options["require"].(map[string]interface{}); ok {
 				s.Log.Debug("composer.json->require: %+v", options)
+				s.PhpExtensions = []string{}
 				// TODO does the value mean something?
 				// TODO does composer.json have zend extensions?
 				// TODO document change to NOT testing if extenion available
